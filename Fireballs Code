@@ -1,0 +1,122 @@
+//Local Scripts//
+local UIS = game:GetService("UserInputService")
+local mouse = game.Players.LocalPlayer:GetMouse()
+local debounce = false
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+--Animation
+local animInstance = Instance.new("Animation")
+animInstance.AnimationId = "rbxassetid://5119790229"
+local fireballAnim = humanoid:LoadAnimation(animInstance)
+--Animation2
+local animInstance2 = Instance.new("Animation")
+animInstance2.AnimationId = "rbxassetid://5122866596"
+local fireballAnim2 = humanoid:LoadAnimation(animInstance2)
+
+--PC
+UIS.InputBegan:Connect(function(key,processed)
+	if processed or debounce then return end
+	debounce = true
+	if key.UserInputType == Enum.UserInputType.Keyboard then
+		if key.KeyCode == Enum.KeyCode.Z then
+			fireballAnim:Play()
+			game.ReplicatedStorage.Events.Fireball:FireServer(mouse.Hit.Position)
+		end
+	end
+	if key.UserInputType == Enum.UserInputType.Keyboard then
+		if key.KeyCode == Enum.KeyCode.X then
+			fireballAnim2:Play()
+			game.ReplicatedStorage.Events.Fireball2:FireServer(mouse.Hit.Position)
+		end
+	end
+	wait(1)
+	debounce = false
+end)
+
+--Mobile
+if UIS.TouchEnabled then
+	UIS.TouchTap:Connect(function(position, processed)
+		if processed or debounce then return end
+		debounce = true
+		fireballAnim:Play()
+		game.ReplicatedStorage.Events.Fireball:FireServer(mouse.Hit.Position)
+		wait(0.5)
+		debounce = false
+	end)
+end
+
+//Server Script1//
+game.ReplicatedStorage.Events.Fireball.OnServerEvent:Connect(function(player,mousePos)
+	local effects = game.ReplicatedStorage.FireballStuff
+	local fireball = effects.Fireball:Clone()
+	local explosion = effects.Explosion:Clone()
+	local character = player.Character
+	
+	--Fireball--
+	fireball.Position = character.RightHand.Position
+	fireball.Parent = workspace
+	local weld = Instance.new("WeldConstraint", fireball)
+	weld.Part0 = fireball
+	weld.Part1 = character.RightHand
+	wait(0.10)
+	weld:Destroy()
+	local velocity = Instance.new("BodyVelocity", fireball)
+	velocity.Velocity = CFrame.new(fireball.Position, mousePos).LookVector * 100
+	
+	--Explosion
+	fireball.Touched:Connect(function(hit)
+		if hit:IsDescendantOf(character) or hit:FindFirstChild("Fire") then return end
+		explosion.Position = fireball.Position
+		fireball:Destroy()
+		explosion.Parent = workspace
+		
+		if hit.Parent:FindFirstChild("Humanoid") then
+			hit.Parent:FindFirstChild("Humanoid"):TakeDamage(20)
+		end
+		wait (0.5)
+		explosion:Destroy()
+		
+	end)
+end)
+
+//Fireball2//
+game.ReplicatedStorage.Events.Fireball2.OnServerEvent:Connect(function(player,mousePos)
+	local effects = game.ReplicatedStorage.FireballStuff
+	local fireball2 = effects.Fireball2:Clone()
+	local explosion2 = effects.Explosion2:Clone()
+	local character = player.Character
+	
+	--Fireball2--
+	fireball2.Position = character.RightHand.Position
+	fireball2.Parent = workspace
+	local weld = Instance.new("WeldConstraint", fireball2)
+	weld.Part0 = fireball2
+	weld.Part1 = character.RightHand
+	wait(0.5)
+	weld:Destroy()
+	local velocity = Instance.new("BodyVelocity", fireball2)
+	velocity.Velocity = CFrame.new(fireball2.Position,mousePos).LookVector * 100
+	
+	--Explosion2--
+	fireball2.Touched:Connect(function(hit)
+		if hit:IsDescendantOf(character) or hit:FindFirstChild("Fire") then return end
+		explosion2.Position = fireball2.Position
+		fireball2:Destroy()
+		explosion2.Parent = workspace
+		
+		if hit.Parent:FindFirstChild("Humanoid") then
+			hit.Parent:FindFirstChild("Humanoid"):TakeDamage(100)
+		
+		end
+		explosion2.Touched:Connect(function(hit)
+			if hit:IsDescendantOf(character) or hit:FindFirstChild("Fire") then return end
+			if hit.Parent:FindFirstChild("Humanoid") then
+				hit.Parent:FindFirstChild("Humanoid"):TakeDamage(100)
+			end
+		end)
+		wait (3)
+		explosion2:Destroy()
+		
+	end)
+end)
