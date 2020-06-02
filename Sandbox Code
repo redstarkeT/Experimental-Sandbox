@@ -1,0 +1,26 @@
+-- Variables
+hello = 50
+bye = 20
+variable = "dw bout it"
+print("yo")
+print(hello+bye)
+
+-- Properties
+game.Workspace.Baseplate.BrickColor = BrickColor.new("Toothpaste")
+game.Workspace.Center.Color = Color3.fromRGB(255,0,0)
+game.Workspace.Tester.Position = Vector3.new(-193, 0.5, -89)
+
+-- While/Instance
+wait(10)
+urmom = 0
+while true do
+	wait(0.16)
+	urmom = urmom + 2
+	part = Instance.new("Part")
+	part.BrickColor = BrickColor.new("New Yeller")
+	part.Position = Vector3.new(0,urmom,0)
+	part.Anchored = true
+
+	part.Parent = game.Workspace
+	
+end
