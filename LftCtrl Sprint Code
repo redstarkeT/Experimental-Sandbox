@@ -1,0 +1,22 @@
+local player = game.Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
+local sprinting = false
+UIS.InputBegan:Connect(function (key, processed)
+	if key.KeyCode == Enum.KeyCode.LeftControl then
+		if sprinting then 
+			sprinting = false
+		else
+			sprinting = true
+		end
+		game.ReplicatedStorage.Sprint_Toggle:FireServer(sprinting)
+	end
+end)
+
+//Server Script//
+game.ReplicatedStorage.Sprint_Toggle.OnServerEvent:Connect(function (player, sprinting)
+	if sprinting and player.Character then
+		player.Character.Humanoid.WalkSpeed = 16
+	elseif player.Character and not sprinting then
+		player.Character.Humanoid.WalkSpeed = 64
+	end
+end)
