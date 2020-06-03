@@ -109,14 +109,21 @@ game.ReplicatedStorage.Events.Fireball2.OnServerEvent:Connect(function(player,mo
 			hit.Parent:FindFirstChild("Humanoid"):TakeDamage(100)
 		
 		end
-		explosion2.Touched:Connect(function(hit)
-			if hit:IsDescendantOf(character) or hit:FindFirstChild("Fire") then return end
-			if hit.Parent:FindFirstChild("Humanoid") then
-				hit.Parent:FindFirstChild("Humanoid"):TakeDamage(100)
-			end
-		end)
-		wait (3)
-		explosion2:Destroy()
 		
 	end)
+	explosion2.Touched:Connect(function(hit)
+		if hit:IsDescendantOf(character) or hit:FindFirstChild("Fire") then return end
+		if hit.Parent:FindFirstChild("Humanoid") then
+			hit.Parent:FindFirstChild("Humanoid"):TakeDamage(100)
+		end
+		for x in game.Players 
+		do
+			if player:DistanceFromCharacter(explosion2.Position) < 24 then
+				x.Parent:FindFirstChild("Humanoid"):TakeDamage(100)
+			end
+		end
+		
+	end)
+	wait (3)
+	explosion2:Destroy()
 end)
