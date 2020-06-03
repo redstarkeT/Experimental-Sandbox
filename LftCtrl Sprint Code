@@ -1,3 +1,5 @@
+//Local Script//
+
 local player = game.Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local sprinting = false
@@ -11,6 +13,7 @@ UIS.InputBegan:Connect(function (key, processed)
 		game.ReplicatedStorage.Sprint_Toggle:FireServer(sprinting)
 	end
 end)
+
 
 //Server Script//
 game.ReplicatedStorage.Sprint_Toggle.OnServerEvent:Connect(function (player, sprinting)
