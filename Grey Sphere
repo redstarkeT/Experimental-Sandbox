@@ -1,0 +1,29 @@
+//Server Script//
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local dumbevent = Instance.new("RemoteEvent", ReplicatedStorage)
+dumbevent.Name = "SuperDumbEvent"
+
+local function URMOM(player, color, position)
+	
+	print(player.Name,"WANTS TO SCRIPT")
+	local sphere = Instance.new("Part")
+	sphere.Shape = Enum.PartType.Ball
+	sphere.BrickColor = color
+	sphere.Position = position
+	sphere.Parent = game.Workspace
+	
+
+end
+
+
+dumbevent.OnServerEvent:Connect(URMOM)
+
+//Local Script//
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local dumbevent = ReplicatedStorage:WaitForChild("SuperDumbEvent")
+
+dumbevent:FireServer(BrickColor.Gray(),Vector3.new(0,2,0))
+
+
+
