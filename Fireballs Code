@@ -1,38 +1,45 @@
-//Local Scripts//
+//Local Scripts1//
 local UIS = game:GetService("UserInputService")
 local mouse = game.Players.LocalPlayer:GetMouse()
 local debounce = false
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
---Animation
-local animInstance = Instance.new("Animation")
-animInstance.AnimationId = "rbxassetid://5119790229"
-local fireballAnim = humanoid:LoadAnimation(animInstance)
---Animation2
-local animInstance2 = Instance.new("Animation")
-animInstance2.AnimationId = "rbxassetid://5122866596"
-local fireballAnim2 = humanoid:LoadAnimation(animInstance2)
 
 --PC
 UIS.InputBegan:Connect(function(key,processed)
+	local player = game.Players.LocalPlayer
+	local character = player.Character or player.CharacterAdded:Wait()
+	local humanoid = character:WaitForChild("Humanoid")
+	--Animation
+	local animInstance = Instance.new("Animation")
+	animInstance.AnimationId = "rbxassetid://5119790229"
+	local fireballAnim = humanoid:LoadAnimation(animInstance)
+	--Animation2
+	local animInstance2 = Instance.new("Animation")
+	animInstance2.AnimationId = "rbxassetid://5122866596"
+	local fireballAnim2 = humanoid:LoadAnimation(animInstance2)
 	if processed or debounce then return end
 	debounce = true
 	if key.UserInputType == Enum.UserInputType.Keyboard then
 		if key.KeyCode == Enum.KeyCode.Z then
 			fireballAnim:Play()
 			game.ReplicatedStorage.Events.Fireball:FireServer(mouse.Hit.Position)
-		end
-	end
-	if key.UserInputType == Enum.UserInputType.Keyboard then
-		if key.KeyCode == Enum.KeyCode.X then
-			fireballAnim2:Play()
-			game.ReplicatedStorage.Events.Fireball2:FireServer(mouse.Hit.Position)
+			wait(1)
+			debounce = true
+			
+		elseif key.KeyCode == Enum.KeyCode.X then
+				fireballAnim2:Play()
+				game.ReplicatedStorage.Events.Fireball2:FireServer(mouse.Hit.Position)
+				wait(2)
+				debounce = true
+		elseif key.KeyCode == Enum.KeyCode.C then
+				game.ReplicatedStorage.Events.Rasengahn:FireServer()
+				wait(10)
+				debounce = true
 		end
 	end
 	wait(1)
 	debounce = false
 end)
+
 
 --Mobile
 if UIS.TouchEnabled then
@@ -45,6 +52,7 @@ if UIS.TouchEnabled then
 		debounce = false
 	end)
 end
+
 
 //Server Script1//
 game.ReplicatedStorage.Events.Fireball.OnServerEvent:Connect(function(player,mousePos)
@@ -61,12 +69,15 @@ game.ReplicatedStorage.Events.Fireball.OnServerEvent:Connect(function(player,mou
 	weld.Part1 = character.RightHand
 	wait(0.10)
 	weld:Destroy()
+	local Debris = game:GetService("Debris")
+	Debris:AddItem(fireball,10)
 	local velocity = Instance.new("BodyVelocity", fireball)
 	velocity.Velocity = CFrame.new(fireball.Position, mousePos).LookVector * 100
+
 	
 	--Explosion
 	fireball.Touched:Connect(function(hit)
-		if hit:IsDescendantOf(character) or hit:FindFirstChild("Fire") then return end
+		if hit:IsDescendantOf(character) or hit:FindFirstChild("ParticleEmitter") then return end
 		explosion.Position = fireball.Position
 		fireball:Destroy()
 		explosion.Parent = workspace
@@ -95,31 +106,34 @@ game.ReplicatedStorage.Events.Fireball2.OnServerEvent:Connect(function(player,mo
 	weld.Part1 = character.RightHand
 	wait(0.5)
 	weld:Destroy()
+	local Debris = game:GetService("Debris")
+	Debris:AddItem(fireball2,10)
 	local velocity = Instance.new("BodyVelocity", fireball2)
 	velocity.Velocity = CFrame.new(fireball2.Position,mousePos).LookVector * 100
+
 	
 	--Explosion2--
 	fireball2.Touched:Connect(function(hit)
-		if hit:IsDescendantOf(character) or hit:FindFirstChild("Fire") then return end
+		if hit:IsDescendantOf(character) or hit:FindFirstChild("ParticleEmitter") then return end
 		explosion2.Position = fireball2.Position
 		fireball2:Destroy()
 		explosion2.Parent = workspace
 		
 		if hit.Parent:FindFirstChild("Humanoid") then
-			hit.Parent:FindFirstChild("Humanoid"):TakeDamage(100)
+			hit.Parent:FindFirstChild("Humanoid"):TakeDamage(50)
 		
 		end
 		
 	end)
 	explosion2.Touched:Connect(function(hit)
-		if hit:IsDescendantOf(character) or hit:FindFirstChild("Fire") then return end
+		if hit:IsDescendantOf(character) or hit:FindFirstChild("ParticleEmitter") then return end
 		if hit.Parent:FindFirstChild("Humanoid") then
-			hit.Parent:FindFirstChild("Humanoid"):TakeDamage(100)
+			hit.Parent:FindFirstChild("Humanoid"):TakeDamage(50)
 		end
 		for x in game.Players 
 		do
 			if player:DistanceFromCharacter(explosion2.Position) < 24 then
-				x.Parent:FindFirstChild("Humanoid"):TakeDamage(100)
+				x.Parent:FindFirstChild("Humanoid"):TakeDamage(50)
 			end
 		end
 		
@@ -127,3 +141,34 @@ game.ReplicatedStorage.Events.Fireball2.OnServerEvent:Connect(function(player,mo
 	wait (3)
 	explosion2:Destroy()
 end)
+
+
+//ServerScript3//
+game.ReplicatedStorage.Events.Rasengahn.OnServerEvent:Connect(function(player)
+	local animInstance3 = Instance.new("Animation")
+	animInstance3.AnimationId = "rbxassetid://5129031170"
+	local rasengahnAnim = player.Character:WaitForChild("Humanoid"):LoadAnimation(animInstance3)
+	rasengahnAnim:Play()
+	local Rasengahn = game.ReplicatedStorage.NineTailsRasengahn:Clone()
+	Rasengahn.Position = player.Character.RightHand.Position
+	Rasengahn.Parent = game.Workspace
+	local weld = Instance.new("WeldConstraint", Rasengahn)
+	weld.Part0 = Rasengahn
+	weld.Part1 = player.Character.RightHand
+	local Debris = game:GetService("Debris")
+	Debris:AddItem(Rasengahn,10)
+	player.Character.Humanoid.WalkSpeed = 100
+	Rasengahn.Touched:Connect(function(hit)
+		if hit:IsDescendantOf(player.Character) or hit:FindFirstChild("ParticleEmitter") then return end
+		if hit.Parent:FindFirstChild("Humanoid") then
+			hit.Parent:FindFirstChild("Humanoid"):TakeDamage(100)
+		end
+		Rasengahn:Destroy()
+		player.Character.Humanoid.WalkSpeed = 16
+		rasengahnAnim:Stop()
+		
+	end)
+	wait(10)
+	player.Character.Humanoid.WalkSpeed = 16
+end)
+
