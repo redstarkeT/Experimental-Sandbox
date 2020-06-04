@@ -1,0 +1,80 @@
+//Local Script//
+local character = game.Players.LocalPlayer.Character
+local RemoteEvent = game.ReplicatedStorage.FireBlow
+local UIS = game:GetService("UserInputService")
+local BlowAnim = character:WaitForChild("Humanoid"):LoadAnimation(RemoteEvent:WaitForChild("Hit"))
+local debounce = false 
+
+UIS.InputBegan:Connect(function(key, processed)
+	if processed or debounce then return end
+	if key.KeyCode == Enum.KeyCode.E then 
+		debounce = true
+		BlowAnim:Play()
+		RemoteEvent:FireServer()
+		wait(0.5)
+		debounce = false
+	end
+end)
+
+//Server Script//
+local TweenService = game:GetService("TweenService")
+local RemoteEvent = game.ReplicatedStorage.FireBlow
+local Folder = game.ReplicatedStorage.Fireball
+
+RemoteEvent.OnServerEvent:Connect(function(plr)
+	local fireball = Folder.Part:Clone()
+	local ring = Folder.Ring:Clone()
+	
+	fireball.Parent = game.Workspace
+	ring.Parent = game.Workspace
+	
+	game.Debris:AddItem(ring, 1.5)
+	game.Debris:AddItem(fireball, 3)
+	
+	fireball.CFrame = plr.Character.HumanoidRootPart.CFrame + plr.Character.HumanoidRootPart.CFrame.lookVector * 5
+	ring.CFrame = plr.Character.HumanoidRootPart.CFrame + plr.Character.HumanoidRootPart.CFrame.lookVector * 2
+	
+	local tweeninfo1 = TweenInfo.new(
+		2,
+		Enum.EasingStyle.Quint,
+		Enum.EasingDirection.Out
+		)
+	local tweeninfo2 = TweenInfo.new(
+		1.5,
+		Enum.EasingStyle.Quint,
+		Enum.EasingDirection.Out
+		)
+	TweenService:Create(fireball,tweeninfo1,{CFrame = plr.Character.HumanoidRootPart.CFrame + plr.Character.HumanoidRootPart.CFrame.lookVector *70, Transparency = 1}):Play()
+	TweenService:Create(ring,tweeninfo2,{Transparency = 1,Size = Vector3.new(7.848, 8.51, 1.008)}):Play()
+	
+	local list = {}
+	local function findValue(whichArray, itemName)
+		for currentIndex = 1, #whichArray do
+			if whichArray[currentIndex] == itemName then
+                 	--Sends the value of currentIndex back
+				return currentIndex
+			end
+		end
+	end
+	fireball.Touched:Connect(function (hit)
+		local valueFound = findValue(list,hit.Parent)
+		if hit:IsDescendantOf(plr.Character) or valueFound then return end
+		if hit.Parent:FindFirstChild("Humanoid") then
+			table.insert(list,hit.Parent)
+			hit.Parent:WaitForChild("Humanoid"):TakeDamage(50)
+			local fireparticle = Folder.Fire:Clone()
+			fireparticle.Parent = hit.Parent:FindFirstChild("Torso")
+			for count = 1,5 do
+				hit.Parent:WaitForChild("Humanoid"):TakeDamage(5)
+				wait(1)
+			wait(5)
+			fireparticle:Destroy()
+			end		
+			
+		end
+	end)
+	list = {}
+end)
+	
+	
+	
