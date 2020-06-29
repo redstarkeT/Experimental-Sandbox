@@ -18,6 +18,6 @@
     	end
     end
      
-    -- Update the effect on every single frame.
+    -- Update the effect on every single frame. 
     RunService.RenderStepped:Connect(updateBobbleEffect)
 
