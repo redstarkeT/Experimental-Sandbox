@@ -1,0 +1,82 @@
+local RP = game:GetService("ReplicatedStorage")
+local TS = game:GetService("TweenService")
+local ChargeEvent = RP:WaitForChild("Charge")
+local ChargeAnim = script:WaitForChild("Animations").Charge
+local Meshes = script:FindFirstChild("Meshes")
+local Debris = game:GetService("Debris")
+
+
+ChargeEvent.OnServerEvent:Connect(function(player,charging,DeadAura,DeadFloor,DeadPulse,DeadRing,DeadSound)
+	warn("Server script running")
+	local Character = player.Character
+	local Humanoid = Character:WaitForChild("Humanoid")
+	local HRP = Character:WaitForChild("HumanoidRootPart")
+	
+	if charging == true then
+		--/Bubble showing and animation
+		local Charge = Humanoid:LoadAnimation(ChargeAnim)
+		local SoulAura = Meshes:WaitForChild("SoulBubble"):Clone()
+		local SoulFloor = Meshes:WaitForChild("SoulFloor"):Clone()
+		local SoulPulse = Meshes:WaitForChild("SoulPulse"):Clone()
+		local Ring = Meshes:WaitForChild("Ring"):Clone()
+		local ChargingSound = script:WaitForChild("Sounds"):WaitForChild("ChargingSound"):Clone()
+		ChargingSound.Parent = workspace
+		Charge:Play()
+		ChargingSound:Play()
+		
+		--/Soul Aura
+		SoulAura.Parent = workspace
+		SoulAura.Name = player.Name.." Soul Aura"
+		SoulAura.Anchored = true
+		SoulAura.CanCollide = false
+		SoulAura.CFrame = HRP.CFrame*CFrame.new(-1,0,0)
+		SoulAura.Orientation = SoulAura.Orientation + Vector3.new(-90,-90,0)
+		
+
+		--/Soul Pulse
+		SoulPulse.Parent = workspace
+		SoulPulse.Name = player.Name.." Soul Pulse"
+		SoulPulse.Anchored = true
+		SoulPulse.CanCollide = false
+		SoulPulse.CFrame = HRP.CFrame*CFrame.new(0,-3,0)
+		SoulPulse.Orientation = SoulPulse.Orientation 
+	
+
+		--/Soul Floor
+		SoulFloor.Parent = workspace
+		SoulFloor.Name = player.Name.." Soul Floor"
+		SoulFloor.Anchored = true
+		SoulFloor.CanCollide = false
+		SoulFloor.CFrame = HRP.CFrame*CFrame.new(0,-3,0)
+		SoulFloor.Orientation = SoulFloor.Orientation + Vector3.new(0,-90,-90)
+		
+		--/Ring
+		Ring.Parent = workspace
+		Ring.Name = player.Name.." Ring"
+		Ring.Anchored = true
+		Ring.CanCollide = false
+		Ring.CFrame = HRP.CFrame*CFrame.new(0,3,0)
+		Ring.Orientation = Ring.Orientation 
+		
+		--/Event for Client
+		ChargeEvent:FireClient(player,SoulAura,SoulFloor,SoulPulse,Ring,ChargingSound)
+		
+		
+	elseif charging == false then
+		--Bubble deleted and animation stopped
+		warn("false charging run")
+		for i,anim in pairs (Humanoid:GetPlayingAnimationTracks()) do 
+			if anim.Name == "Charge" then
+				anim:Stop()
+			end
+		end
+		DeadAura:Destroy()
+		DeadFloor:Destroy()
+		DeadPulse:Destroy()
+		DeadSound:Destroy()
+		DeadRing:Destroy()
+
+	end
+	--/Need to play animation, instance and position soul bubble, run particles,
+	--/if statement for charging or not to delete bubble or spawn it and start loop animation or stop it
+end)
