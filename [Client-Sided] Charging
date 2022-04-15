@@ -1,0 +1,70 @@
+local isHit = script.Parent:WaitForChild("isHit")
+local isBroken = script.Parent:WaitForChild("isBroken")
+local isCharging = script.Parent:WaitForChild("isCharging")
+local UIS = game:GetService("UserInputService")
+local RP = game:GetService("ReplicatedStorage")
+local ChargeEvent = RP:WaitForChild("Charge")
+local CurrentAura = nil
+local CurrentPulse = nil
+local CurrentFloor = nil
+local CurrentSound = nil
+local CurrentRing = nil
+local debounce = false 
+charging = false
+local cd = 1
+
+local player = game.Players.LocalPlayer
+local Character = player.CharacterAdded:Wait() 
+local HRP = Character:WaitForChild("HumanoidRootPart")
+--/Button is pressed
+UIS.InputBegan:Connect(function(input, isTyping)
+	if isTyping then
+		return
+	elseif input.KeyCode == Enum.KeyCode.LeftShift then
+		if debounce == false and isBroken.Value == false and isHit.Value == false and isCharging.Value == false then
+			isCharging.Value = true
+			charging = true
+			ChargeEvent:FireServer(charging,CurrentAura,CurrentFloor,CurrentPulse, CurrentSound)
+			--/Add movement inhibition, anchor maybe?
+			HRP.Anchored = true
+			
+		end
+	end
+end)
+
+--/Button is released
+UIS.InputEnded:Connect(function(input, isTyping)
+	if isTyping then 
+		return 
+	elseif input.KeyCode == Enum.KeyCode.LeftShift then
+		warn("InputEnded")
+		if isBroken.Value == false and isHit.Value == false and isCharging.Value == true then
+			warn("InputEnded2")
+			isCharging.Value = false
+			charging = false
+			ChargeEvent:FireServer(charging,CurrentAura,CurrentFloor,CurrentPulse,CurrentRing,CurrentSound)	
+			CurrentAura = nil
+			CurrentSound = nil
+			CurrentFloor = nil
+			CurrentPulse = nil
+			CurrentRing = nil
+			debounce = true
+			HRP.Anchored = false
+			wait(cd)
+			debounce = false
+
+		end
+		
+	end
+end)
+
+ChargeEvent.OnClientEvent:Connect(function(SoulAura,SoulFloor,SoulPulse,Ring, ChargingSound)
+	warn("Charge On Client Runs")
+	if isCharging.Value == true then
+		CurrentAura = SoulAura
+		CurrentFloor = SoulFloor
+		CurrentSound = ChargingSound
+		CurrentPulse = SoulPulse
+		CurrentRing = Ring
+	end
+end)
