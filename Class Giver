@@ -1,0 +1,18 @@
+local RS = game:GetService("ReplicatedStorage")
+local ClassEventFolder = RS:WaitForChild("ClassEvents")
+local ClassEvent = ClassEventFolder:WaitForChild("Class")
+local Classes = RS:WaitForChild("Races")
+
+ClassEvent.OnServerEvent:Connect(function (Player,className)
+	local Backpack = Player.Backpack
+	local selection = Classes:FindFirstChild(className)
+	if selection then
+		local moveset = selection:FindFirstChild("RaceStuff"):Clone()
+		for _, Child in pairs(moveset:GetChildren()) do
+			Child.Parent = Backpack --Move the children up one parent
+		end
+
+		moveset:Destroy()
+	end
+	
+end)
