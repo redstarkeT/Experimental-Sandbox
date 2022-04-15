@@ -1,0 +1,69 @@
+game.ReplicatedStorage.AirWalk.AirWalkEvents.AirWalkUp.OnServerEvent:Connect(function(player)
+	print("AirWalkUp code accessed")
+	local humanoid = player.Character:WaitForChild("Humanoid")
+	local AirWalkAnim = game.ReplicatedStorage.AirWalk.AirWalkAnimation.AirWalkUp
+	local Animator = humanoid:WaitForChild("Animator")
+	local AirAnimation = Animator:LoadAnimation(AirWalkAnim)
+	local HRP = player.Character:WaitForChild("HumanoidRootPart")
+	local DE = game:GetService("Debris")
+	local Sound = game.Workspace.Sounds.Woosh
+	local TS = game:GetService("TweenService")
+	
+
+	AirAnimation:Play()
+	
+	local BP = Instance.new("BodyPosition")
+	BP.Name = "AirForce"
+	BP.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
+	BP.P = 500
+	BP.D = 200
+	BP.Position = HRP.Position + Vector3.new(0,110,0)
+
+	local BG = Instance.new("BodyGyro")
+	BG.Name = "DashOrientation"
+	BG.MaxTorque = Vector3.new(math.huge,math.huge,math.huge)
+	BG.D = 50
+	BG.P = 5000
+	BG.CFrame = HRP.CFrame
+
+	Sound:Play()
+
+	BG.Parent = HRP
+	BP.Parent = HRP
+
+	DE:AddItem(BP,0.3)
+	DE:AddItem(BG,0.3)
+	
+	local soul = game.ReplicatedStorage.Boost.BoostEffects.SoulBoost1:Clone()
+	soul.Parent = game.Workspace
+	soul.Anchored = true
+	soul.CanCollide = false 
+	soul.CFrame = (HRP.CFrame + Vector3.new(0,-2,0))* CFrame.fromEulerAnglesXYZ(soul.CFrame:ToEulerAnglesXYZ())
+	DE:AddItem(soul,2)
+	local tweenInfo = TweenInfo.new(2,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
+	local goal = {}
+
+	goal.Transparency = 1
+	goal.CFrame = (HRP.CFrame + Vector3.new(0,-4,0))* CFrame.fromEulerAnglesXYZ(soul.CFrame:ToEulerAnglesXYZ())
+
+	local tween = TS:Create(soul,tweenInfo,goal)
+
+	local pulse = game.ReplicatedStorage.Boost.BoostEffects.Pulse1:Clone()
+	pulse.Parent = game.Workspace
+	pulse.Anchored = true
+	pulse.CanCollide = false
+	pulse.CFrame = (HRP.CFrame + Vector3.new(0,-2,0))* CFrame.fromEulerAnglesXYZ(pulse.CFrame:ToEulerAnglesXYZ())
+	DE:AddItem(pulse,2)
+	local tweenInfo2 = TweenInfo.new(2,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
+	local goal2 = {}
+	goal2.Transparency = 1
+	goal2.CFrame = (HRP.CFrame + Vector3.new(0,-4.2,0))* CFrame.fromEulerAnglesXYZ(pulse.CFrame:ToEulerAnglesXYZ())
+	goal2.Size = Vector3.new(9,0.1,9)
+
+	local tween2 = TS:Create(pulse,tweenInfo2,goal2)
+	
+	tween:Play()
+	tween2:Play()
+	
+end)
+
