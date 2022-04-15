@@ -1,0 +1,14 @@
+local player = game.Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
+local sprinting = false
+UIS.InputBegan:Connect(function (key, processed)
+	if processed then return end
+	if key.KeyCode == Enum.KeyCode.LeftControl then
+		if not sprinting then 
+			sprinting = true
+		else
+			sprinting = false
+		end
+		game.ReplicatedStorage.Sprint_Toggle:FireServer(sprinting)
+	end
+end)
