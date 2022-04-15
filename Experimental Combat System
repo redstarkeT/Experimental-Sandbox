@@ -1,0 +1,210 @@
+local RP = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local CombatEvent = RP:WaitForChild("Combat")
+local StunEvent = RP:WaitForChild("Stun")
+local HitEvent = RP:WaitForChild("Hit")
+local Debris = game:GetService("Debris")
+local Animations = script:WaitForChild("Animations")
+local EnemyAnims = script:WaitForChild("EnemyAnims")
+local Meshes = script:WaitForChild("Meshes")
+local anims = {
+	Animations:WaitForChild("Right"),
+	Animations:WaitForChild("Left"),
+	Animations:WaitForChild("Gut"),
+	Animations:WaitForChild("Kick"),
+	Animations:WaitForChild("Headbutt")
+}
+
+local eanims = {
+	EnemyAnims:WaitForChild("EnemyRight"),
+	EnemyAnims:WaitForChild("EnemyLeft"),
+	EnemyAnims:WaitForChild("EnemyGut"),
+	EnemyAnims:WaitForChild("EnemyKick"),
+	EnemyAnims:WaitForChild("Break"),
+}
+local limbs = {
+	"RightHand",
+	"LeftHand",
+	"RightHand",
+	"RightUpperLeg",
+	"Head",
+}
+
+local Damage = 10
+
+CombatEvent.OnServerEvent:Connect(function(player,count,click)
+	local Character = player.Character
+	local Humanoid = Character:WaitForChild("Humanoid")
+	local HumRP = Character:WaitForChild("HumanoidRootPart")
+	local attack = false
+	local limb = false
+	local folder = Instance.new("Folder",Character)
+	local Hitbox = Meshes:WaitForChild("Hitbox"):Clone()
+
+	if click == "MB2" then
+		attack = Humanoid:LoadAnimation(anims[count+1])
+		limb = Character:WaitForChild(limbs[count+1])
+		attack:Play()
+
+		folder.Name = player.Name.." Melee"
+		Debris:AddItem(folder,1)
+		Hitbox.CFrame = limb.CFrame
+		Hitbox.Parent = folder
+		Debris:AddItem(Hitbox,1)
+
+	elseif click == "MB1" then 
+		attack = Humanoid:LoadAnimation(anims[count])
+		limb = Character:WaitForChild(limbs[count])
+		attack:Play()
+
+		folder.Name = player.Name.." Melee"
+		Debris:AddItem(folder,0.5)
+		Hitbox.CFrame = limb.CFrame
+		Hitbox.Parent = folder
+		Debris:AddItem(Hitbox,0.5)
+
+	end
+	attack:Play()
+
+
+
+	local weld = Instance.new("ManualWeld")
+	weld.Part0 = Hitbox
+	weld.Part1 = limb
+	weld.C0 = weld.Part0.CFrame:toObjectSpace(weld.Part0.CFrame)
+	weld.Parent = weld.Part0
+
+	Hitbox.Touched:Connect(function(Hit)
+		if Hit:IsA("BasePart") then
+			if not Hit:IsDescendantOf(Character) then
+				local enemyHumanoid = Hit.Parent:FindFirstChild("Humanoid")
+				local enemyHumRP = enemyHumanoid.Parent:WaitForChild("HumanoidRootPart")
+				if enemyHumanoid and enemyHumRP then
+					local blockAction = enemyHumanoid:FindFirstChild("blockAction")
+
+					if click == "MB2" then 
+						if blockAction then
+							--/Counts towards blocking
+							Hitbox:Destroy()
+							--/Block Break
+							local Break = enemyHumanoid:LoadAnimation(eanims[5])
+							Break:Play()
+							blockAction:Destroy()
+							for i, anims in pairs(enemyHumanoid:GetPlayingAnimationTracks()) do
+								if anims.Name == "Block" then 
+									anims:Stop()
+								end
+							end
+							--/Stun Initiation
+							local enemy = game:GetService("Players"):GetPlayerFromCharacter(enemyHumanoid.Parent)
+							StunEvent:FireClient(enemy)
+							--/Stun Initiated
+
+							local effects = Instance.new("Folder",workspace)
+							effects.Name = player.Name.." Effects"
+							Debris:AddItem(effects,0.5)
+
+							local Wave = Meshes:WaitForChild("Wave"):Clone()
+							Wave.CFrame = enemyHumRP.CFrame
+							Wave.Orientation = Wave.Orientation + Vector3.new(0,90,0)
+							Wave.Parent = effects
+
+							local goal = {}
+							goal.Size = Wave.Size + Vector3.new(10,10,10)
+							goal.Transparency = 1
+							local info = TweenInfo.new(0.5,Enum.EasingStyle.Sine, Enum.EasingDirection.Out,3)
+							local tween = TweenService:Create(Wave,info,goal)
+							tween:Play()
+
+						else
+							--/Damages since no blocking
+							Hitbox:Destroy()
+							enemyHumanoid:TakeDamage(Damage)
+
+							local react = enemyHumanoid:LoadAnimation(eanims[count])
+							react:Play()
+							if count == 4 then 
+								local goal = {}
+								goal.CFrame = CFrame.new((HumRP.CFrame * CFrame.new(0,0,-15)).p, HumRP.CFrame.p)
+								local info = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+								local tween = TweenService:Create(enemyHumRP,info,goal)
+								tween:Play()
+							end
+							--/Mini Hit Stun Initiation
+							local enemy = game:GetService("Players"):GetPlayerFromCharacter(enemyHumanoid.Parent)
+							HitEvent:FireClient(enemy)
+
+
+						end
+					elseif click == "MB1" then
+						--/This is if its M1
+						if blockAction then
+							--/Counts towards blocking
+							Hitbox:Destroy()
+							if blockAction.Value > 0 then
+								blockAction.Value -= 1
+								if blockAction.Value == 0 then
+									--/Block Break
+									local Break = enemyHumanoid:LoadAnimation(eanims[5])
+									Break:Play()
+									blockAction:Destroy()
+									for i, anims in pairs(enemyHumanoid:GetPlayingAnimationTracks()) do
+										if anims.Name == "Block" then 
+											anims:Stop()
+										end
+									end
+									--/Stun Initiation
+									local enemy = game:GetService("Players"):GetPlayerFromCharacter(enemyHumanoid.Parent)
+									StunEvent:FireClient(enemy)
+									--/Stun Initiated
+
+									local effects = Instance.new("Folder",workspace)
+									effects.Name = player.Name.." Effects"
+									Debris:AddItem(effects,0.5)
+
+									local Wave = Meshes:WaitForChild("Wave"):Clone()
+									Wave.CFrame = enemyHumRP.CFrame
+									Wave.Orientation = Wave.Orientation + Vector3.new(0,90,0)
+									Wave.Parent = effects
+
+									local goal = {}
+									goal.Size = Wave.Size + Vector3.new(10,10,10)
+									goal.Transparency = 1
+									local info = TweenInfo.new(0.5,Enum.EasingStyle.Sine, Enum.EasingDirection.Out,3)
+									local tween = TweenService:Create(Wave,info,goal)
+									tween:Play()
+								end
+							end
+
+						else
+							--/Damages since no blocking
+							Hitbox:Destroy()
+							enemyHumanoid:TakeDamage(Damage)
+
+							local react = enemyHumanoid:LoadAnimation(eanims[count])
+							react:Play()
+							if count == 4 then 
+								local goal = {}
+								goal.CFrame = CFrame.new((HumRP.CFrame * CFrame.new(0,0,-15)).p, HumRP.CFrame.p)
+								local info = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+								local tween = TweenService:Create(enemyHumRP,info,goal)
+								tween:Play()
+							end
+							--/Mini Hit Stun Initiation
+							local enemy = game:GetService("Players"):GetPlayerFromCharacter(enemyHumanoid.Parent)
+							HitEvent:FireClient(enemy)
+
+
+						end
+					end
+
+
+
+
+				end
+
+			end
+		end
+	end)
+	CombatEvent:FireClient(player)
+end)
