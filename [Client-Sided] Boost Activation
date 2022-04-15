@@ -1,0 +1,56 @@
+local UIS = game:GetService("UserInputService")
+local RS = game:WaitForChild("ReplicatedStorage")
+local lastTime = tick()
+local lastTime2 = tick()
+local debounce = false
+local debounce2 = false
+local className = script.Parent.Name
+local function IsWKeyDown()
+	return UIS:IsKeyDown(Enum.KeyCode.W) 
+end
+
+local BoostMove = UIS.InputBegan:Connect(function(key,processed)
+	if processed then return end
+	if key.KeyCode == Enum.KeyCode.Space and IsWKeyDown() then
+		local now = tick()
+		local difference = (now - lastTime)
+		
+		if difference <= 0.2 then
+			if debounce == false then
+				debounce = true
+				RS.Boost.BoostEvents.WBoostEvent:FireServer(className)
+				wait(0.5)
+				debounce = false
+			end
+		end
+		
+		lastTime = tick()
+		
+	elseif key.KeyCode == Enum.KeyCode.Space then
+		local now = tick()
+		local difference = (now - lastTime2)
+
+		if difference <= 0.2 then
+			if debounce2 == false then
+				debounce2 = true
+				RS.Boost.BoostEvents.BoostEvent:FireServer(className)
+				wait(0.5)
+				debounce2 = false
+			end
+		end
+
+		lastTime2 = tick()
+	end
+end)
+
+local PLRS = game:GetService("Players")
+local LPLR = PLRS.LocalPlayer
+local CHAR = LPLR.Character
+local HUM = CHAR:WaitForChild("Humanoid")
+
+Died = HUM.Died:Connect(function()
+	if BoostMove then
+		BoostMove:Disconnect()
+	end
+	Died:Disconnect()
+end)
