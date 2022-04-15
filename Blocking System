@@ -1,0 +1,35 @@
+local RP = game:GetService("ReplicatedStorage")
+local Block = RP:WaitForChild("Block")
+
+local Animations = script:WaitForChild("Animations")
+local Meshes = script:WaitForChild("Meshes")
+Block.OnServerEvent:Connect(function(player,isActive)
+	local Character = player.Character
+	local Humanoid = Character:WaitForChild("Humanoid")
+	
+	if isActive == true then
+		--/Blocking
+		local anim = Humanoid:LoadAnimation(Animations:WaitForChild("Block"))
+		anim:Play()
+		
+		local blockAction = Instance.new("NumberValue",Humanoid)
+		blockAction.Name = "blockAction"
+		blockAction.Value = 5
+		
+	elseif isActive == false then
+		--/Not Blocking
+		for i, anims in pairs(Humanoid:GetPlayingAnimationTracks()) do
+			if anims.Name == "Block" then 
+				anims:Stop()
+			end
+		end
+		
+		local blockAction = Humanoid:FindFirstChild("blockAction")
+		if blockAction then 
+			blockAction:Destroy()
+		end
+	end
+	
+	Block:FireClient(player)
+	
+end)
