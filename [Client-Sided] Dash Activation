@@ -1,0 +1,57 @@
+local UIS = game:GetService("UserInputService")
+local className = script.Parent.Name
+local RS = game:GetService("ReplicatedStorage")
+local Dash = RS:FindFirstChild("Dash")
+local DashEvents = Dash:FindFirstChild("DashEvents")
+
+local function IsWKeyDown()
+	return UIS:IsKeyDown(Enum.KeyCode.W) 
+end
+
+local function IsAKeyDown()
+	return UIS:IsKeyDown(Enum.KeyCode.A) 
+end
+
+local function IsSKeyDown()
+	return UIS:IsKeyDown(Enum.KeyCode.S) 
+end
+
+local function IsDKeyDown()
+	return UIS:IsKeyDown(Enum.KeyCode.D) 
+end
+
+local debounce = false
+
+local DashMove = UIS.InputBegan:Connect(function(key,processed)
+	if processed or debounce then return end
+	debounce = true
+	if key.KeyCode == Enum.KeyCode.Q and IsWKeyDown() then
+		DashEvents:FindFirstChild("FDashEvent"):FireServer(className)
+		wait(1)
+		
+	elseif key.KeyCode == Enum.KeyCode.Q and IsSKeyDown() then
+		DashEvents:FindFirstChild("BDashEvent"):FireServer(className)
+		wait(1)
+		
+	elseif key.KeyCode == Enum.KeyCode.Q and IsAKeyDown() then
+		DashEvents:FindFirstChild("LDashEvent"):FireServer(className)
+		wait(1)
+		
+	elseif key.KeyCode == Enum.KeyCode.Q and IsDKeyDown()  then
+		DashEvents:FindFirstChild("RDashEvent"):FireServer(className)
+		wait(1)
+	end
+	debounce = false
+end)
+
+local PLRS = game:GetService("Players")
+local LPLR = PLRS.LocalPlayer
+local CHAR = LPLR.Character
+local HUM = CHAR:WaitForChild("Humanoid")
+
+Died = HUM.Died:Connect(function()
+	if DashMove then
+		DashMove:Disconnect()
+	end
+	Died:Disconnect()
+end)
