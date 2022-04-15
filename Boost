@@ -1,0 +1,93 @@
+local RS = game:WaitForChild("ReplicatedStorage")
+local BoostFolder = RS:FindFirstChild("Boost")
+local BoostEvent = BoostFolder:FindFirstChild("BoostEvents"):FindFirstChild("BoostEvent")
+BoostEvent.OnServerEvent:Connect(function(player,className)
+	local humanoid = player.Character:WaitForChild("Humanoid")
+	local BoostAnim = BoostFolder:WaitForChild("BoostAnimations"):WaitForChild("Boost")
+	local Animator = humanoid:WaitForChild("Animator")
+	local BoostAnimation = Animator:LoadAnimation(BoostAnim)
+	local HRP = player.Character:WaitForChild("HumanoidRootPart")
+	local DE = game:GetService("Debris")
+	local Sound = game.Workspace.Sounds.Woosh
+	
+	BoostAnimation:Play()
+	local IL = {}
+	for i,v in pairs(workspace:GetDescendants()) do
+		if v:IsA("BasePart") or v:IsA("TrussPart") or v:IsA("Part") or v:IsA("MeshPart") or v:IsA("CornerWedgePart") or v:IsA("WedgePart") or v:IsA("SpawnLocation") then
+			table.insert(IL,v)
+		end 
+	end
+
+	local RAY = Ray.new(HRP.Position,Vector3.new(0,30,0))
+	local RAYPOS, HITPOS = workspace:FindPartOnRayWithIgnoreList(RAY, IL, false, true)
+
+	local BP = Instance.new("BodyPosition")
+	BP.Name = "DashForce"
+	BP.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
+	BP.D = 100
+	BP.P = 500
+	BP.Position = HITPOS
+
+	local BG = Instance.new("BodyGyro")
+	BG.Name = "DashOrientation"
+	BG.MaxTorque = Vector3.new(math.huge,math.huge,math.huge)
+	BG.D = 50
+	BG.P = 5000
+	BG.CFrame = HRP.CFrame
+
+	Sound:Play()
+
+	BG.Parent = HRP
+	BP.Parent = HRP
+
+	DE:AddItem(BP,0.3)
+	DE:AddItem(BG,0.3)
+	
+	local TS = game:GetService("TweenService")
+	local soul = BoostFolder:FindFirstChild("BoostEffects").SoulBoost1:Clone()
+	local pulse = BoostFolder:FindFirstChild("BoostEffects").Pulse1:Clone()
+	
+	if className == "Fullbringer" then
+		soul.BrickColor = BrickColor.new("Bright green")
+		pulse.BrickColor = BrickColor.new("Bright green")
+	elseif className == "Hollow" then
+		soul.BrickColor = BrickColor.new("Bright red")
+		pulse.BrickColor = BrickColor.new("Bright red")
+	elseif className == "Quincy" then
+		soul.BrickColor = BrickColor.new("Bright blue")
+		pulse.BrickColor = BrickColor.new("Bright blue")
+	elseif className == "Shinigami" then 
+		soul.BrickColor = BrickColor.new("Tr. Flu. Blue")
+		pulse.BrickColor = BrickColor.new("Tr. Flu. Blue")
+	end
+
+	soul.Parent = game.Workspace
+	soul.Anchored = true
+	soul.CanCollide = false 
+	soul.CFrame = (HRP.CFrame + Vector3.new(0,-2,0))* CFrame.fromEulerAnglesXYZ(soul.CFrame:ToEulerAnglesXYZ())
+	DE:AddItem(soul,2)
+	local tweenInfo = TweenInfo.new(2,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
+	local goal = {}
+
+	goal.Transparency = 1
+	goal.CFrame = (HRP.CFrame + Vector3.new(0,-4,0))* CFrame.fromEulerAnglesXYZ(soul.CFrame:ToEulerAnglesXYZ())
+
+	local tween = TS:Create(soul,tweenInfo,goal)
+
+
+	pulse.Parent = game.Workspace
+	pulse.Anchored = true
+	pulse.CanCollide = false
+	pulse.CFrame = (HRP.CFrame + Vector3.new(0,-2,0))* CFrame.fromEulerAnglesXYZ(pulse.CFrame:ToEulerAnglesXYZ())
+	DE:AddItem(pulse,2)
+	local tweenInfo2 = TweenInfo.new(2,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
+	local goal2 = {}
+	goal2.Transparency = 1
+	goal2.CFrame = (HRP.CFrame + Vector3.new(0,-4.2,0))* CFrame.fromEulerAnglesXYZ(pulse.CFrame:ToEulerAnglesXYZ())
+	goal2.Size = Vector3.new(9,0.1,9)
+
+	local tween2 = TS:Create(pulse,tweenInfo2,goal2)
+
+	tween:Play()
+	tween2:Play()
+end)
