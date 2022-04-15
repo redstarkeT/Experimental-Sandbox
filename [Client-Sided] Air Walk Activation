@@ -1,0 +1,51 @@
+local UIS = game:GetService("UserInputService")
+local RS = game:WaitForChild("ReplicatedStorage")
+local debounce = false
+local count = 0
+local BaseFloor = RS.Floors.BaseFloor
+BaseFloor.Parent = game.Workspace
+BaseFloor.Position = Vector3.new(0,-1,0)
+BaseFloor.Anchored = true
+local current_floor = BaseFloor
+
+local AirWalkMove = UIS.InputBegan:Connect(function(key,processed)
+	if processed or debounce then return end
+	debounce = true
+	if key.KeyCode == Enum.KeyCode.Z and count < 10 then
+		print("z key activated")
+		RS.AirWalk.AirWalkEvents.AirWalkUp:FireServer()
+		wait(1)
+		local AirFloor = RS.Floors.Floor:Clone()
+		AirFloor.Parent = game.Workspace
+		AirFloor.Position = current_floor.Position + Vector3.new(0,100,0)
+		AirFloor.Anchored = true
+		current_floor:Destroy()
+		current_floor = AirFloor
+		count = count + 1
+		wait(0.20)
+		
+	elseif key.KeyCode == Enum.KeyCode.X and count > 0 then
+		local AirFloor = RS.Floors.Floor:Clone()
+		AirFloor.Parent = game.Workspace
+		AirFloor.Position = current_floor.Position + Vector3.new(0,-100,0)
+		AirFloor.Anchored = true
+		current_floor:Destroy()
+		current_floor = AirFloor
+		RS.AirWalk.AirWalkEvents.AirWalkDown:FireServer()
+		count = count - 1
+		wait(1.20)
+	end
+	debounce = false
+end)
+
+local PLRS = game:GetService("Players")
+local LPLR = PLRS.LocalPlayer
+local CHAR = LPLR.Character
+local HUM = CHAR:WaitForChild("Humanoid")
+
+Died = HUM.Died:Connect(function()
+	if AirWalkMove then
+		AirWalkMove:Disconnect()
+	end
+	Died:Disconnect()
+end)
