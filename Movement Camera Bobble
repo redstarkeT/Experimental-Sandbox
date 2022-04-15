@@ -1,0 +1,24 @@
+local runService = game:GetService("RunService")
+local player = game:GetService("Players").LocalPlayer
+local Character = player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local isCharging = script.Parent:WaitForChild("isCharging")
+--/Maybe just make this for walking and running both but add a multiplier for if isRunning is true
+--/Base it on humanoid.MoveDirection.Magnitude 
+function MovementBobbleEffect()
+	local currentTime = tick()
+	local isRunning = script.Parent:WaitForChild("IsRunning")
+	if Humanoid.MoveDirection.Magnitude > 0 and isCharging.Value == false then 
+		local bobbleX = math.cos(currentTime*10)*1
+		local bobbleY = math.abs(math.sin(currentTime*10))*1
+		
+		local bobble = Vector3.new(bobbleX,bobbleY,0)
+		
+		Humanoid.CameraOffset = Humanoid.CameraOffset:lerp(bobble,0.25)
+	else 
+		Humanoid.CameraOffset = Humanoid.CameraOffset*0.75
+		
+	end
+end
+
+runService.RenderStepped:Connect(MovementBobbleEffect)
