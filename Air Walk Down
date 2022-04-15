@@ -1,0 +1,48 @@
+game.ReplicatedStorage.AirWalk.AirWalkEvents.AirWalkDown.OnServerEvent:Connect(function(player)
+	local humanoid = player.Character:WaitForChild("Humanoid")
+	local AirWalkAnim = game.ReplicatedStorage.AirWalk.AirWalkAnimation.AirWalkDown
+	local Animator = humanoid:WaitForChild("Animator")
+	local AirAnimation = Animator:LoadAnimation(AirWalkAnim)
+	local HRP = player.Character:WaitForChild("HumanoidRootPart")
+	local DE = game:GetService("Debris")
+	local Sound = game.Workspace.Sounds.Woosh
+
+	AirAnimation:Play()
+
+	Sound:Play()
+
+	local TS = game:GetService("TweenService")
+	local soul = game.ReplicatedStorage.Boost.BoostEffects.SoulBoost2:Clone()
+	soul.Parent = game.Workspace
+	soul.Anchored = true
+	soul.CanCollide = false 
+	soul.CFrame = (HRP.CFrame + Vector3.new(0,-2,0))* CFrame.fromEulerAnglesXYZ(soul.CFrame:ToEulerAnglesXYZ())
+	DE:AddItem(soul,2)
+	local tweenInfo = TweenInfo.new(2,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
+	local goal = {}
+
+	goal.Transparency = 1
+	goal.CFrame = (HRP.CFrame + Vector3.new(0,-4,0))* CFrame.fromEulerAnglesXYZ(soul.CFrame:ToEulerAnglesXYZ())
+
+	local tween = TS:Create(soul,tweenInfo,goal)
+
+	local pulse = game.ReplicatedStorage.Boost.BoostEffects.Pulse1:Clone()
+	pulse.Parent = game.Workspace
+	pulse.Anchored = true
+	pulse.CanCollide = false
+	pulse.CFrame = (HRP.CFrame + Vector3.new(0,-2,0))* CFrame.fromEulerAnglesXYZ(pulse.CFrame:ToEulerAnglesXYZ())
+	DE:AddItem(pulse,2)
+	local tweenInfo2 = TweenInfo.new(2,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
+	local goal2 = {}
+	goal2.Transparency = 1
+	goal2.CFrame = (HRP.CFrame + Vector3.new(0,-4.2,0))* CFrame.fromEulerAnglesXYZ(pulse.CFrame:ToEulerAnglesXYZ())
+	goal2.Size = Vector3.new(9,0.1,9)
+
+	local tween2 = TS:Create(pulse,tweenInfo2,goal2)
+
+	tween:Play()
+	tween2:Play()
+	
+
+end)
+
