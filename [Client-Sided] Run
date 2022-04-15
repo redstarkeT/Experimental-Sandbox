@@ -1,0 +1,30 @@
+local Player = game:GetService("Players").LocalPlayer
+local RP = game:GetService("ReplicatedStorage")
+local Run = RP:WaitForChild("Run")
+local isRunning = script.Parent:WaitForChild("IsRunning")
+local UIS = game:GetService("UserInputService")
+
+local sprinting = false
+local debounce = false
+local cd = 0.5
+
+--/Need to add the input release function 
+UIS.InputBegan:Connect(function(input,isTyping)
+	if not isTyping and debounce == false then
+		if input.KeyCode == Enum.KeyCode.LeftControl then 
+			debounce = true
+			if sprinting == true then
+				sprinting = false
+				isRunning.Value = false
+			elseif sprinting == false then
+				sprinting = true
+				isRunning.Value = true
+			end
+			
+			RP:WaitForChild("Run"):FireServer(sprinting)
+			warn("Run Remote Event fired!")
+			wait(cd)
+			debounce = false
+		end
+	end
+end)
