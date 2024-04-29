@@ -1,0 +1,281 @@
+local RS = game:GetService("ReplicatedStorage")
+local TS = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+local BlueFireEvent = RS.Chi.RemoteEvents.BlueFire
+local UniversalBarrierList = require(game:GetService("ServerStorage").ModuleScript.BarrierList)
+local CombatFunc = require(game:GetService("ServerStorage").ModuleScript.CombatFunc)
+local RegFunc = require(game:GetService("ServerStorage").ModuleScript.RegFunc)
+local BaseDamage = 70
+local BlockDamage = 45
+local BlueFireID = RS.Chi.Animations.Moves.Sokatsui
+local ChiCastVFXOriginal = RS.Chi.Meshes.ChiCastVFX
+local BlueBallOriginal = RS.Chi.Meshes.BlueBall
+local BlueBallHitVFXOriginal = nil
+local ImpactCircleOriginal = RS.Chi.Meshes.BlueBallPulse
+local stuntime = 1.4
+local StaminaDrainValues = require(game:GetService("ReplicatedStorage").ModuleScripts.StaminaDrainValues)
+local StaminaDrain = StaminaDrainValues.ChiMoves.BlueFire
+local MoveCooldowns = require(game:GetService("ReplicatedStorage").ModuleScripts.MoveCooldowns)
+local BlueFireCD = MoveCooldowns.ChiMoves.BlueFire
+local  MoveDuration = 2
+local LimitRemovalValues = require(game:GetService("ReplicatedStorage").ModuleScripts.LimitRemoveValues)
+local LevelValues = require(game:GetService("ReplicatedStorage").ModuleScripts.LevelValues)
+local ChiExp = LevelValues.Chi.Combat.Base
+
+
+BlueFireEvent.OnServerEvent:Connect(function(player,Hitbox)
+	local Character = player.Character
+	local HRP = Character.HumanoidRootPart
+	local RightHand = Character.RightHand
+	local CombatPace = Character.CharacterValues.CombatPace.Value
+	local WalkPace = Character.CharacterValues.WalkPace.Value
+	local isStunned = Character.CombatSystem.isStunned
+	local isAttacking = Character.CombatSystem.isAttacking
+	local HyperArmor = Character.CombatSystem.HyperArmor
+	local PostureBreak = Character.CombatSystem.PostureBreak
+	local Cooldown = player.Character.MoveValues.BlueFireCD
+	local ChiStat = player:FindFirstChild("StatFolder").Chi.Value 
+	local ChiBar = player.StatFolder.ChiBar
+	local LevelValues = require(game:GetService("ReplicatedStorage").ModuleScripts.LevelValues)
+	local ChiCap2 = (math.max(0,player.StatFolder.Chi.Value - 1000))*LevelValues.Mults.ChiMult.SoftCap1000
+	local ChiCap1 = math.max(0,math.clamp(player.StatFolder.Chi.Value-500,0,500))*LevelValues.Mults.ChiMult.SoftCap500
+	local BasePower = math.clamp(player.StatFolder.Chi.Value,0,500)*LevelValues.Mults.ChiMult.Base
+	local ChiMult = 1 + (ChiCap2+ChiCap1+BasePower)
+	local DamageType = "Chi"
+	Cooldown.Value = true
+	isAttacking.Value = true
+	Character.CombatSystem.PostM2Slow.Value = true
+	Character.CombatSystem.M2Running.Value = true
+	Character.Humanoid.WalkSpeed = CombatPace
+	local BlueFireAnim = Character.Humanoid.Animator:LoadAnimation(BlueFireID)
+	BlueFireAnim:Play() -- looped
+	CombatFunc.M2Notifier(Character)
+	HyperArmor.Value = true
+	local ChiCastVFX = ChiCastVFXOriginal:Clone()
+	ChiCastVFX.PointLight.Color = Color3.new(0.431373, 0.6, 0.792157)
+	ChiCastVFX.Weld.Part0 = RightHand
+	ChiCastVFX.Parent = workspace
+	local BlueBall = BlueBallOriginal:Clone()
+	BlueBall.Weld.Part0 = HRP
+	BlueBall.Weld.C0 = HRP.CFrame:ToObjectSpace(HRP.CFrame*CFrame.new(0,1,-2))
+	BlueBall.Parent = workspace
+	
+	spawn(function()
+		CombatFunc.ChiBarDrain(Character,ChiBar,StaminaDrain)
+	end)
+	--Emit/Enable the initial cast particles of sparks and energy buzz
+	BlueBall.InnerAttachment.EnergyBuzz.Enabled = true
+	BlueBall.InnerAttachment.Sparks:Emit(25)
+	local CastWaitPt1 = 0.5
+	local timestamp = tick()
+
+	repeat task.wait(0.03)
+	until tick() - timestamp >= CastWaitPt1 or PostureBreak.Value == true
+	if PostureBreak.Value == true then
+		BlueBall:Destroy()
+		ChiCastVFX:Destroy()
+		BlueFireAnim:Stop()
+		isAttacking.Value = false 
+		Character.CombatSystem.PostM2Slow.Value = false
+		Character.CombatSystem.M2Running.Value = false
+		Character.Humanoid.WalkSpeed = WalkPace
+		HyperArmor.Value = false
+		spawn(function()
+			Cooldown.Value = true
+			task.wait(BlueFireCD)
+			Cooldown.Value = false
+		end)
+	else
+		--cast part 2
+		local goal = {}
+		goal.Size = Vector3.new(1,1,1)
+		local tweenInfo = TweenInfo.new(0.5,Enum.EasingStyle.Back,Enum.EasingDirection.In)
+		local BallTween = TS:Create(BlueBall,tweenInfo,goal)
+		BallTween:Play()
+		repeat
+			task.wait(0)
+		until BallTween.PlaybackState == Enum.PlaybackState.Completed or PostureBreak.Value == true 
+		if PostureBreak.Value == true then
+			BlueBall:Destroy()
+			ChiCastVFX:Destroy()
+			BlueFireAnim:Stop()
+			isAttacking.Value = false 
+			Character.CombatSystem.PostM2Slow.Value = false
+			Character.CombatSystem.M2Running.Value = false
+			Character.Humanoid.WalkSpeed = WalkPace
+			HyperArmor.Value = false
+			spawn(function()
+				Cooldown.Value = true
+				task.wait(BlueFireCD)
+				Cooldown.Value = false
+			end)
+		else
+			--do the move
+
+			ChiCastVFX:Destroy()
+			BlueBall.Weld:Destroy()
+			BlueBall:Destroy()
+			isAttacking.Value = false 
+			Character.CombatSystem.PostM2Slow.Value = false
+			Character.CombatSystem.M2Running.Value = false
+			Character.Humanoid.WalkSpeed = WalkPace
+			HyperArmor.Value = false
+			spawn(function()
+				Cooldown.Value = true
+				task.wait(BlueFireCD)
+				Cooldown.Value = false
+			end)
+			--delay the move bools reverting 
+			--[[
+			delay(MoveDuration,function()
+				isAttacking.Value = false 
+				Character.CombatSystem.PostM2Slow.Value = false
+				Character.CombatSystem.M2Running.Value = false
+				Character.Humanoid.WalkSpeed = WalkPace
+				HyperArmor.Value = false
+				spawn(function()
+					Cooldown.Value = true
+					task.wait(BlueFireCD)
+					Cooldown.Value = false
+				end)]]--
+	
+			-- spwan the vfx
+			local BlueFireCrash = RS.Chi.Meshes.NewBlueFireCrash:Clone()
+			BlueFireCrash:PivotTo(HRP.CFrame*CFrame.new(0,0,-10)*CFrame.Angles(0,math.rad(180),0))
+			BlueFireCrash.Parent = workspace
+			Debris:AddItem(BlueFireCrash,MoveDuration)
+			--camera heavy shake
+			spawn(function()
+				CombatFunc.AOEShake(HRP.CFrame,Vector3.new(200,40,200),10)
+			end)
+			--
+			local blacklist = {Character} 
+			local HitboxSize = Vector3.new(24,24,35) 
+			local HitboxOffset = HitboxSize.Z/2
+			local OverlapParms = OverlapParams.new()
+			OverlapParms.FilterType = Enum.RaycastFilterType.Blacklist
+			OverlapParms.FilterDescendantsInstances = {Character}
+			local ComboAdded = false
+			local PartBox = workspace:GetPartBoundsInBox(HRP.CFrame*CFrame.new(0,0,-HitboxOffset),HitboxSize,OverlapParms)
+			local someonehit = false
+			for i,Part in pairs(PartBox) do
+				print(Part)
+				if Part.Parent == nil then continue end
+				if table.find(UniversalBarrierList.List,Part) then
+					--damage the chi barrier, make the chi barrier play the sound of being damaged 
+					-- using durability.changed function? don't feel like adding it to every script
+					CombatFunc.Damage(Character,Part,BaseDamage*ChiMult,"Chi")
+					if ComboAdded == false then
+						ComboAdded = true
+						Character.CombatSystem.ComboCount.Value += 1
+					end
+					someonehit = true
+				elseif Part.Parent:FindFirstChild("Humanoid") and not table.find(blacklist,Part.Parent) then
+					print("M1 TARGET FOUND")
+					table.insert(blacklist,Part.Parent)
+					if Part.Parent:FindFirstChild("NonFightingNPC") then
+						print("NPC player hit doesnt count")
+						continue
+					end
+					--check if either player is under birdsnest protection
+					if game:GetService("Players"):GetPlayerFromCharacter(Part.Parent) then
+						local enemyPlayer = game:GetService("Players"):GetPlayerFromCharacter(Part.Parent)
+						if (enemyPlayer.StatFolder.BirdsNestProtection.Value == true or player.StatFolder.BirdsNestProtection.Value == true) and math.abs(player.StatFolder.Level.Value-enemyPlayer.StatFolder.Level.Value) >= 50 then
+							continue
+						end
+					end
+					local enemy_hum = Part.Parent:FindFirstChild("Humanoid")
+					local enemy_Character = enemy_hum.Parent
+					local enemy_HRP = enemy_Character:FindFirstChild("HumanoidRootPart")
+					local enemyBlock = enemy_Character.CombatSystem.isBlocking.Value
+					local enemy_DeflectWindow = enemy_Character.CombatSystem.DeflectReady.Value
+					local enemy_CounterReady = enemy_Character.CombatSystem.CounterReady.Value
+					local enemy_BreakingAway = enemy_Character.CombatSystem.isBreakingAway.Value
+
+					--first check if anything is between player and character like a barrier
+
+					local RayCastParms = RaycastParams.new()
+					RayCastParms.FilterType = Enum.RaycastFilterType.Whitelist
+					RayCastParms.FilterDescendantsInstances = UniversalBarrierList.List
+					local StartPos = CFrame.lookAt(HRP.Position,enemy_HRP.Position)*CFrame.new(0,0,3).Position
+					local RayCastResult = workspace:Raycast(StartPos,enemy_HRP.Position-StartPos,RayCastParms)
+					print("BarrierList")
+					print(UniversalBarrierList.List)
+					if RayCastResult then
+						--doesnt count,hit a barrier, skip
+						print("Raycast Instance!")
+						print(RayCastResult.Instance)
+
+					elseif enemy_Character.CombatSystem.isCrashed.Value == true or enemy_Character.CombatSystem.inCutscene.Value == true or enemy_Character.CombatSystem.inForceField.Value == true then
+						print("Crashed player hit doesnt count")	
+						
+					elseif enemy_CounterReady == true then
+						enemy_Character.CombatSystem.isCountering.Value = true
+						Character.CombatSystem.isCountered.Value = true
+						Character.CombatSystem.CounterSource.Value = enemy_Character.Name
+						spawn(function()
+							task.wait(2)
+							Character.CombatSystem.isCountered.Value = false
+							Character.CombatSystem.isCountered.Value = nil
+						end)
+						
+					elseif enemyBlock == true then
+						--check for edge case armadillo
+						--if armadillo do armadillo combat func else regular posture add
+						enemy_Character.CombatSystem.HitCount.Value += 1
+						CombatFunc.BlockVFX(enemy_Character,Character)
+						CombatFunc.BlockDamage(Character,enemy_Character,BlockDamage*ChiMult,BaseDamage*ChiMult)
+						someonehit = true
+					else
+						--regular attack
+						--BlueFireHitVFX with sound, spawn
+						print("BlueFire Humanoid Hit")
+						someonehit = true
+						Character.CombatSystem.DeflectCount.Value = 0
+						enemy_Character.CombatSystem.HitCount.Value += 1
+						CombatFunc.M1VFX(enemy_Character,Character)
+						CombatFunc.Damage(Character,enemy_Character,BaseDamage*ChiMult,DamageType)
+						CombatFunc.ComboFinishPushBack(Character,enemy_Character,10)
+						CombatFunc.PostureAdd(Character,enemy_Character,(BaseDamage*ChiMult)*1.5,DamageType)
+						--local BlueBallHitVFX = BlueBallHitVFXOriginal:Clone()
+						--BlueBallHitVFX.CFrame = enemy_HRP.CFrame
+						--BlueBallHitVFX.Parent = workspace
+						if ComboAdded == false then
+							ComboAdded = true
+							Character.CombatSystem.ComboCount.Value += 1
+						end
+						if enemy_Character.CombatSystem.isBroken.Value == false then
+							enemy_Character.CombatSystem.isStunned.Value = true
+							--func called
+							print("M1 STUN EVENT REACHED")
+							spawn(function()
+								CombatFunc.StunFunc(stuntime,enemy_Character,enemy_hum,true)
+							end)	
+							print("M1 STUN FIRED")
+						end
+					end
+				end
+
+
+			end
+			if someonehit == true and Character.CombatSystem.isTraining.Value == false and player.StatFolder.HungerType.Value ~= "Low" then
+				local StatFolder = player.StatFolder
+			
+						spawn(function()
+							CombatFunc.NewStatLevel(player,"Chi",ChiExp)
+						end)
+					
+				
+			end
+			--Touched:Disconnect()
+			print("Blue fire end reached")
+			BlueFireAnim:AdjustWeight(0,0.25)
+			spawn(function()
+				repeat task.wait(0.05) until math.abs(BlueFireAnim.WeightCurrent - 0) <= 0.002
+				BlueFireAnim:Stop()
+			end)
+			
+		end
+
+	end
+end)
