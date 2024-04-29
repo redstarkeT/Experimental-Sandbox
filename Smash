@@ -1,0 +1,341 @@
+local RS = game:GetService("ReplicatedStorage")
+local Debris = game:GetService("Debris")
+local CombatFunc = require(game:GetService("ServerStorage").ModuleScript.CombatFunc)
+local RegFunc = require(game:GetService("ServerStorage").ModuleScript.RegFunc)
+local CharacterPartList = require(game:GetService("ReplicatedStorage").ModuleScripts.CharacterPartList)
+local UniversalBarrierList = require(game:GetService("ServerStorage").ModuleScript.BarrierList)
+local SmashRubble = RS.Biscuit.Meshes.CraterDebrisJumbo
+local SmashHitVFX = RS.Biscuit.Meshes.SmashHitVFX
+local SmashImpactVFX = RS.Biscuit.Meshes.SmashImpactVFX
+local SmashEvent = RS.Biscuit.RemoteEvents.Smash
+local CooldownEvent = RS.Biscuit.RemoteEvents.SmashCD
+local SmashID = RS.Biscuit.Animations.Moves.Smash
+local OriginalM2SwingSound = RS.Sound["M2 Swing Sound Effect"]
+local OriginalM2BlockSound = RS.Sound["M2 Block Sound Effect"]
+local stuntime = 1.4
+local BaseDamage = 90
+local BlockDamage = 180
+local MoveCooldowns = require(game:GetService("ReplicatedStorage").ModuleScripts.MoveCooldowns)
+local SmashCD = MoveCooldowns.BiscuitMoves.Smash
+
+SmashEvent.OnServerEvent:Connect(function(player,HitBox,Ignore)
+	local DMult = 1
+	local Height = player:FindFirstChild("StatFolder").HeightScale.Value
+	local DamageType = "Power"
+	local Character = player.Character
+	local HRP = Character.HumanoidRootPart
+	local isStunned = Character.CombatSystem.isStunned
+	local Humanoid = Character.Humanoid
+	local PostureBreak = Character.CombatSystem.PostureBreak
+	local PostM2Slow = Character.CombatSystem.PostM2Slow
+	local Cooldown = player.Character.MoveValues.SmashCD
+	Character.CombatSystem.isAttacking.Value = true
+	Cooldown.Value = true 
+	Character.CombatSystem.HyperArmor.Value = true
+	Character.CombatSystem.M2Running.Value = true
+	PostM2Slow.Value = true
+	Humanoid.WalkSpeed = Character.CharacterValues.CombatPace.Value 
+	
+	local PowerStat = player:FindFirstChild("StatFolder").Power.Value
+	local LevelValues = require(game:GetService("ReplicatedStorage").ModuleScripts.LevelValues)
+	local PowerCap2 = (math.max(0,player.StatFolder.Power.Value - 1000))*LevelValues.Mults.PowerMult.SoftCap1000
+	local PowerCap1 = math.max(0,math.clamp(player.StatFolder.Power.Value-500,0,500))*LevelValues.Mults.PowerMult.SoftCap500
+	local BasePower = math.clamp(player.StatFolder.Power.Value,0,500)*LevelValues.Mults.PowerMult.Base
+	local PowerMult = 1 + (PowerCap2+PowerCap1+BasePower)
+	DMult *= PowerMult
+	local StaminaBar = player.StatFolder.StaminaBar
+	local StaminaMax = player.StatFolder.StaminaMax
+	local SmashAnim = Humanoid.Animator:LoadAnimation(SmashID)
+	--add trails
+	local Trails = {}
+
+	for i,TrailSet in SmashID:GetChildren() do
+		local Part1 = TrailSet.Part1.Value
+		local Part2 = TrailSet.Part2.Value 
+		local Trail = RS.Meshes.SkillTrail:Clone()
+		Trail.Parent = Character:FindFirstChild(Part1)
+		local Attachment10 = Instance.new("Attachment",Character:FindFirstChild(Part1))
+		local Attachment11 = Instance.new("Attachment",Character:FindFirstChild(Part2))
+		Trail.Attachment0 = Attachment10
+		Trail.Attachment1 = Attachment11
+		table.insert(Trails,Trail)
+	end
+	
+	local function HRPToFloorCFrame(Character)
+		local HRP = Character.HumanoidRootPart
+		local RightLowerLeg = Character.RightLowerLeg
+		local RightUpperLeg = Character.RightUpperLeg
+
+		local maxDistance = HRP.Size.Y/2 + RightLowerLeg.Size.Y + RightUpperLeg.Size.Y 
+
+		local RayCastParms = RaycastParams.new()
+		RayCastParms.FilterType = Enum.RaycastFilterType.Blacklist
+		RayCastParms.FilterDescendantsInstances = {Character:GetDescendants()}
+		RayCastParms.IgnoreWater = true
+		local RaycastResult = workspace:Raycast(HRP.Position,(HRP.Position+Vector3.new(0,-maxDistance-1,0)) - HRP.Position,RayCastParms)
+		local CFrameResult = nil
+		if RaycastResult then
+			print("RayCastResult")
+			CFrameResult = HRP.CFrame*CFrame.new(0,-RaycastResult.Distance,0)
+		else
+			print("NoRayCastResult")
+			CFrameResult = HRP.CFrame*CFrame.new(0,-maxDistance,0)
+		end
+
+		return CFrameResult
+	end
+
+	local function SpawnEnvironmentCrater(Rubble,CenterCFrame,Radius,Interval)
+		local Increment = 360/Interval
+		for i = 1, Interval do
+			print("I BEING PRINTED")
+			print(i)
+			local CurrentDebris = Rubble:Clone()
+			local DebrisCFrame = CenterCFrame*CFrame.Angles(0,math.rad(Increment*i),0)*CFrame.new(0,0,-Radius)
+			local AbovePos = DebrisCFrame.Position+Vector3.new(0,1,0)
+			local BelowPos = DebrisCFrame.Position+Vector3.new(0,-1,0)
+			local RayCastParms = RaycastParams.new()
+			RayCastParms.FilterType = Enum.RaycastFilterType.Blacklist
+			RayCastParms.FilterDescendantsInstances = CharacterPartList.List
+			local RaycastResult = workspace:Raycast(AbovePos,BelowPos-AbovePos,RayCastParms)
+			if RaycastResult then
+				CurrentDebris.Material = RaycastResult.Instance.Material
+				CurrentDebris.Color = RaycastResult.Instance.Color
+			end
+			CurrentDebris.CFrame = DebrisCFrame*CFrame.new(0,-2,0)
+			CurrentDebris.Parent = workspace
+			Debris:AddItem(CurrentDebris,3)
+
+		end
+	end
+	local Ratio = StaminaBar.Value/StaminaMax.Value 
+	local StaminaDrain = StaminaBar.Value 
+	spawn(function()
+		CombatFunc.StaminaBarDrain(Character,StaminaBar,StaminaDrain)
+	end)
+	DMult *= Ratio --scales the full damage basically based on amount of stamina used
+	SmashAnim:Play()
+	CombatFunc.M2Notifier(Character)
+	
+	local ComboAdded = false
+	local AttackEvent = SmashAnim:GetMarkerReachedSignal("Attack"):Connect(function()
+		local SwingSound = OriginalM2SwingSound:Clone()
+		local CraterEndPos = HRP.CFrame*CFrame.new(0,-6,0).Position
+		local FloorRayCast = RegFunc.RayCastResult(HRP.Position,CraterEndPos,{Character})
+		--local touchedEvent = Hitbox.Touched:Connect(function()end)
+		local someonehit = false
+		local blacklist = {Character} 
+		--local touchingparts = Hitbox:GetTouchingParts()
+		local HitboxSize = Vector3.new(20, 20, 20)
+		local HitboxOffset = HitboxSize.Z/2
+		local OverlapParms = OverlapParams.new()
+		OverlapParms.FilterType = Enum.RaycastFilterType.Blacklist
+		OverlapParms.FilterDescendantsInstances = {Character}
+		--smash sphere vfx
+		if FloorRayCast ~= nil then
+			--camera shake
+			spawn(function()
+				CombatFunc.AOEShake(HRP.CFrame,Vector3.new(200,40,200),10)
+			end)
+			--smash sphere
+			local SmashSphere = RS.Meshes.SmashSphere:Clone()
+			SmashSphere.Parent = workspace
+			SmashSphere.CFrame = CFrame.new(FloorRayCast.Position)*CFrame.new(0,8,0)
+			Debris:AddItem(SmashSphere,2)
+			--smash debris
+			local FloorPos = FloorRayCast.Position
+			local FloorInstance = FloorRayCast.Instance
+			local FloorNormal = FloorRayCast.Normal
+			local SmashDebris = RS.Biscuit.Meshes.JTSmashDebrisv2:Clone()
+			--local Smoke1 = SmashDebris.CrashVFX.Smoke1
+			--Smoke1.Color = ColorSequence.new(FloorInstance.BrickColor.Color)
+			SmashDebris:PivotTo(CFrame.lookAt(FloorPos,FloorPos+FloorNormal)*CFrame.new(0,0,-1)*CFrame.Angles(math.rad(-90),0,0))
+			for i,Part in SmashDebris:GetChildren() do
+				Part.BrickColor = FloorInstance.BrickColor
+				Part.Material = FloorInstance.Material
+			end
+			SmashDebris.Parent = workspace
+			local DebrisBit = RS.Meshes.DebrisBit:Clone()
+			DebrisBit.BrickColor = FloorInstance.BrickColor
+			DebrisBit.Material = FloorInstance.Material
+			Debris:AddItem(SmashDebris,2)
+			--smash mesh cover
+			local SmashMeshCover = RS.Biscuit.Meshes.SmashSpiralv2:Clone()
+			SmashMeshCover.Parent = workspace
+			SmashMeshCover.CFrame = CFrame.new(FloorRayCast.Position)*CFrame.new(0,8,0)
+			local TS = game:GetService("TweenService")
+			local tweenInfo = TweenInfo.new(2,Enum.EasingStyle.Sine,Enum.EasingDirection.Out)
+			local goal = {}
+			goal.Size = Vector3.new(48, 24, 48)
+			goal.CFrame = HRP.CFrame*CFrame.new(0,5,0)*CFrame.Angles(0,math.rad(180),0)
+			goal.Transparency = 1
+			local SmashCoverTween = TS:Create(SmashMeshCover,tweenInfo,goal)
+			SmashCoverTween:Play()
+			Debris:AddItem(SmashMeshCover,3)
+			--Impact VFX 
+			--took out impact vfx cuz looks tacky
+			--[[local Impact = SmashImpactVFX:Clone()
+			Impact.Parent = workspace
+			Impact.Position = CFrame.new(HRP.Position)*CFrame.new(0,-HRP.Size.Y*3/2,0).Position
+			Debris:AddItem(Impact,3)	]]--
+		end
+
+	--
+		--Cinematic Sound
+		local CinematicBoom  = RS.Biscuit.Sounds.CinematicBoomSmash:Clone()
+		CinematicBoom.Parent = HRP
+		CinematicBoom:Play()
+		Debris:AddItem(CinematicBoom,10)
+		local PartBox = workspace:GetPartBoundsInBox(HRP.CFrame,HitboxSize,OverlapParms)
+
+		for i,part in pairs(PartBox) do
+			if table.find(UniversalBarrierList.List,part) then
+				--damage the chi barrier, make the chi barrier play the sound of being damaged 
+				-- using durability.changed function? don't feel like adding it to every script
+				someonehit = true
+				if ComboAdded == false then
+					ComboAdded = true
+					Character.CombatSystem.ComboCount.Value += 1
+				end
+				CombatFunc.Damage(Character,part,BaseDamage*DMult,DamageType)
+			
+			
+			elseif part.Parent:FindFirstChild("Humanoid") and not table.find(blacklist,part.Parent) then
+				print("Smash humanoid found")
+				table.insert(blacklist,part.Parent)
+				if part.Parent:FindFirstChild("NonFightingNPC") then
+					print("NPC player hit doesnt count")
+					continue
+				end
+				--check if either player is under birdsnest protection
+				if game:GetService("Players"):GetPlayerFromCharacter(part.Parent) then
+					local enemyPlayer = game:GetService("Players"):GetPlayerFromCharacter(part.Parent)
+					if (enemyPlayer.StatFolder.BirdsNestProtection.Value == true or player.StatFolder.BirdsNestProtection.Value == true) and math.abs(player.StatFolder.Level.Value-enemyPlayer.StatFolder.Level.Value) >= 50 then
+						continue
+					end
+				end
+				local enemy_hum = part.Parent:FindFirstChild("Humanoid")
+				local enemy_Character = enemy_hum.Parent
+				local enemy_HRP = enemy_Character:FindFirstChild("HumanoidRootPart")
+				local enemyBlock = enemy_Character.CombatSystem.isBlocking.Value
+				local enemy_DeflectWindow = enemy_Character.CombatSystem.DeflectReady.Value
+				local enemy_CounterReady = enemy_Character.CombatSystem.CounterReady.Value
+				local enemy_BreakingAway = enemy_Character.CombatSystem.isBreakingAway.Value
+				local EnemyHRPFloorCFrame = HRPToFloorCFrame(enemy_Character)
+				
+				local RayCastParms = RaycastParams.new()
+				RayCastParms.FilterType = Enum.RaycastFilterType.Whitelist
+				RayCastParms.FilterDescendantsInstances = UniversalBarrierList.List
+				local StartPos = CFrame.lookAt(HRP.Position,enemy_HRP.Position)*CFrame.new(0,0,3).Position
+				local RayCastResult = workspace:Raycast(StartPos,enemy_HRP.Position-StartPos,RayCastParms)
+				print("BarrierList")
+				print(UniversalBarrierList.List)
+				if RayCastResult then
+					--doesnt count,hit a barrier, skip
+					print("Raycast Instance!")
+					print(RayCastResult.Instance)
+
+				elseif enemy_Character.CombatSystem.isCrashed.Value == true or enemy_Character.CombatSystem.inCutscene.Value == true or enemy_Character.CombatSystem.inForceField.Value == true then
+					continue
+				end
+
+
+				--setting enemy to face player?
+				--enemy_HRP.CFrame = CFrame.new(enemy_HRP.Position,HRP.Position)
+
+				--pushes both players forward a bit
+
+				--if block is up
+				if enemy_CounterReady == true then
+					someonehit = true									
+					enemy_Character.CombatSystem.isCountering.Value = true
+					Character.CombatSystem.isCountered.Value = true
+					Character.CombatSystem.CounterSource.Value = enemy_Character.Name
+					spawn(function()
+						task.wait(2)
+						Character.CombatSystem.isCountered.Value = false
+						Character.CombatSystem.CounterSource.Value = ""
+					end)
+
+				elseif enemy_BreakingAway == true then
+					continue
+
+				elseif enemyBlock == true then
+					someonehit = true 			
+					enemy_Character.CombatSystem.HitCount.Value += 1
+					spawn(function()
+						RegFunc.SpawnFXPart(SmashHitVFX:Clone(),enemy_HRP.CFrame,3)
+					end)
+					local BlockSound = OriginalM2BlockSound:Clone()
+					BlockSound.Parent = enemy_HRP
+					CombatFunc.BlockVFX(enemy_Character,Character)
+					BlockSound:Play()
+					Debris:AddItem(BlockSound,2)
+					--check for edge case armadillo
+					--if armadillo do armadillo combat func else regular posture add
+					CombatFunc.BlockDamage(Character,enemy_Character,BlockDamage*DMult,BaseDamage*DMult)
+				else
+					
+					someonehit = true 
+					if ComboAdded == false then
+						ComboAdded = true
+						Character.CombatSystem.ComboCount.Value += 1
+					end
+					spawn(function()
+						RegFunc.SpawnFXPart(SmashHitVFX:Clone(),enemy_HRP.CFrame,3)
+					end)
+					
+					spawn(function()
+						CombatFunc.M1VFX(enemy_Character,Character)
+					end)
+					Character.CombatSystem.DeflectCount.Value = 0
+					enemy_Character.CombatSystem.HitCount.Value += 1
+					local finalPosition = CFrame.lookAt(enemy_HRP.Position,Vector3.new(HRP.Position.X,enemy_HRP.Position.Y,HRP.Position.Z))*CFrame.Angles(math.rad(-45),0,0)*CFrame.new(0,0,20).Position
+					CombatFunc.CustomFinishPushBack(Character,enemy_Character,finalPosition)
+					--calling stun event for enemy hit only, if block broken doesnt stack
+
+					--deal damage 
+					CombatFunc.Damage(Character,enemy_Character,BaseDamage*DMult,DamageType)
+					CombatFunc.PostureAdd(Character,enemy_Character,BaseDamage*DMult*1.5,DamageType)
+					spawn(function()
+						CombatFunc.StunFunc(stuntime,enemy_Character,enemy_hum,true)
+					end)
+				end
+			end
+
+		end
+		--after loop
+		if someonehit == false then
+			SwingSound.Parent = Character
+			SwingSound:Play()
+			Debris:AddItem(SwingSound,2)
+			local SmashSound = RS.Sound["M2 Punch 2"]:Clone()
+			SmashSound.Parent = HRP
+			SmashSound:Play()
+			Debris:AddItem(SmashSound,3)
+
+		end
+		task.wait(0.05)
+		--touchedEvent:Disconnect()
+	end)
+
+	repeat task.wait(0.03) until PostureBreak.Value == true or SmashAnim.isPlaying == false
+	for i,Trail in Trails do
+		Trail:Destroy()
+	end
+	SmashAnim:Stop()
+	Character.CombatSystem.isAttacking.Value = false
+	Character.CombatSystem.HyperArmor.Value = false
+	delay(2,function()
+		--how to keep playing from activating run in this time
+		Humanoid.WalkSpeed = Character.CharacterValues.WalkPace.Value
+		Character.CombatSystem.M2Running.Value = false
+		PostM2Slow.Value = false
+	end)
+	spawn(function()
+		Cooldown.Value = true
+		task.wait(SmashCD)
+		Cooldown.Value = false
+	end)
+
+end)
